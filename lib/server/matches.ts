@@ -11,7 +11,11 @@ interface MatchFilters {
 }
 
 export async function getMatchViewerById(id: string): Promise<MatchViewerDTO | null> {
-  if (!hasDatabase()) {
+  try {
+    if (!hasDatabase()) {
+      return getMockMatchById(id);
+    }
+  } catch {
     return getMockMatchById(id);
   }
 
@@ -61,7 +65,11 @@ export async function getMatchViewerById(id: string): Promise<MatchViewerDTO | n
 }
 
 export async function listMatches(filters: MatchFilters, take = 50): Promise<MatchListItemDTO[]> {
-  if (!hasDatabase()) {
+  try {
+    if (!hasDatabase()) {
+      return getMockMatches().slice(0, take);
+    }
+  } catch {
     return getMockMatches().slice(0, take);
   }
 
