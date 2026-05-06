@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import { prisma } from "@/lib/prisma";
+import { prisma, hasDatabase } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const steamId = formData.get("steamId") as string | null;
   const mockMode = formData.get("mock") === "true";
 
-  if (mockMode) {
+  if (mockMode || !hasDatabase()) {
     return handleMockUpload(steamId);
   }
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   await writeFile(filePath, buffer);
 
   // Create match record
-  const match = await prisma.match.create({
+  const match = await prisma!.match.create({
     data: {
       steamId: steamId || null,
       mapName: "unknown",
@@ -49,7 +49,11 @@ async function handleMockUpload(steamId: string | null) {
   const { generateMockMatch } = await import("@/lib/mockData");
   const mock = generateMockMatch();
 
-  const match = await prisma.match.create({
+  if (!hasDatabase()) {
+    return NextResponse.json({ matchId: mock.id, status: "done" });
+  }
+
+  const match = await prisma!.match.create({
     data: {
       steamId: steamId || null,
       mapName: mock.mapName,
@@ -68,7 +72,7 @@ async function handleMockUpload(steamId: string | null) {
     players: mock.players,
   });
 
-  await prisma.match.update({
+  await prisma!.match.update({
     where: { id: match.id },
     data: { status: "done", mapName: "de_dust2", scoreT: 13, scoreCt: 11, parsedAt: new Date() },
   });
@@ -80,7 +84,7 @@ async function parseInBackground(matchId: string, filePath: string) {
   const parserUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:8000";
 
   try {
-    await prisma.match.update({ where: { id: matchId }, data: { status: "parsing" } });
+    await prisma!.match.update({ where: { id: matchId }, data: { status: "parsing" } });
 
     const { readFile } = await import("fs/promises");
     const fileBuffer = await readFile(filePath);
@@ -95,14 +99,14 @@ async function parseInBackground(matchId: string, filePath: string) {
 
     const data = await res.json();
 
-    await prisma.match.update({ where: { id: matchId }, data: { status: "analyzing" } });
+    await prisma!.match.update({ where: { id: matchId }, data: { status: "analyzing" } });
     await storeParsedData(matchId, data);
 
     // Detect map name from file path (best effort)
     const mapName = detectMapFromFilePath(filePath);
     const lastRound = data.rounds?.[data.rounds.length - 1];
 
-    await prisma.match.update({
+    await prisma!.match.update({
       where: { id: matchId },
       data: {
         status: "done",
@@ -113,7 +117,7 @@ async function parseInBackground(matchId: string, filePath: string) {
       },
     });
   } catch (err) {
-    await prisma.match.update({
+    await prisma!.match.update({
       where: { id: matchId },
       data: { status: "error", errorMsg: String(err) },
     });
@@ -138,7 +142,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
 
   // Batch insert rounds
   if (rounds.length) {
-    await prisma.round.createMany({
+    await prisma!.round.createMany({
       data: rounds.map((r) => ({
         matchId,
         roundNum: Number(r.round_num ?? r.roundNum ?? 0),
@@ -153,7 +157,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
   // Batch insert kills (chunked to avoid SQLite limits)
   const CHUNK = 500;
   for (let i = 0; i < kills.length; i += CHUNK) {
-    await prisma.kill.createMany({
+    await prisma!.kill.createMany({
       data: kills.slice(i, i + CHUNK).map((k) => ({
         matchId,
         tick: Number(k.tick ?? 0),
@@ -170,7 +174,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
 
   // Batch insert positions (chunked)
   for (let i = 0; i < positions.length; i += CHUNK) {
-    await prisma.playerPosition.createMany({
+    await prisma!.playerPosition.createMany({
       data: positions.slice(i, i + CHUNK).map((p) => ({
         matchId,
         tick: Number(p.tick ?? 0),
@@ -185,7 +189,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
 
   // Batch insert grenades
   if (grenades.length) {
-    await prisma.grenadeEvent.createMany({
+    await prisma!.grenadeEvent.createMany({
       data: grenades.map((g) => ({
         matchId,
         tick: Number(g.tick ?? 0),
@@ -198,7 +202,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
 
   // Batch insert damages
   for (let i = 0; i < damages.length; i += CHUNK) {
-    await prisma.damage.createMany({
+    await prisma!.damage.createMany({
       data: damages.slice(i, i + CHUNK).map((d) => ({
         matchId,
         tick: Number(d.tick ?? 0),
@@ -213,7 +217,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
   // Insert per-player stats
   for (const [steamId, s] of Object.entries(playerStats)) {
     const stat = s as Record<string, unknown>;
-    await prisma.playerMatchStat.upsert({
+    await prisma!.playerMatchStat.upsert({
       where: { id: `${matchId}-${steamId}` },
       update: {},
       create: {
@@ -234,7 +238,7 @@ async function storeParsedData(matchId: string, data: Record<string, unknown>) {
   // Store player names if provided
   const players = (data.players as Array<{ steamId: string; name: string; team: string }>) ?? [];
   for (const p of players) {
-    await prisma.playerMatchStat.updateMany({
+    await prisma!.playerMatchStat.updateMany({
       where: { matchId, steamId: p.steamId },
       data: { playerName: p.name, team: p.team },
     });

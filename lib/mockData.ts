@@ -294,3 +294,107 @@ export function generateMockMatch(id?: string) {
     players: MOCK_PLAYERS,
   };
 }
+
+export function getMockMatches() {
+  return [
+    {
+      id: "demo-match-001",
+      mapName: "de_dust2",
+      scoreT: 13,
+      scoreCt: 11,
+      status: "done",
+      date: new Date().toISOString(),
+      playerStats: MOCK_PLAYERS.map((p) => ({
+        steamId: p.steamId,
+        playerName: p.name,
+        team: p.team,
+        kills: 15 + Math.floor(Math.random() * 10),
+        deaths: 10 + Math.floor(Math.random() * 8),
+        assists: Math.floor(Math.random() * 5),
+        rating: 0.8 + Math.random() * 0.5,
+      })),
+    },
+    {
+      id: "demo-match-002",
+      mapName: "de_mirage",
+      scoreT: 16,
+      scoreCt: 14,
+      status: "done",
+      date: new Date(Date.now() - 86400000).toISOString(),
+      playerStats: MOCK_PLAYERS.map((p) => ({
+        steamId: p.steamId,
+        playerName: p.name,
+        team: p.team,
+        kills: 12 + Math.floor(Math.random() * 12),
+        deaths: 8 + Math.floor(Math.random() * 10),
+        assists: Math.floor(Math.random() * 4),
+        rating: 0.9 + Math.random() * 0.4,
+      })),
+    },
+  ];
+}
+
+export function getMockMatchById(id: string) {
+  const mock = generateMockMatch(id);
+  return {
+    id: mock.id,
+    mapName: mock.mapName,
+    scoreT: mock.scoreT,
+    scoreCt: mock.scoreCt,
+    status: "done",
+    date: new Date().toISOString(),
+    rounds: mock.rounds.map((r, i) => ({
+      id: `r-${i}`,
+      roundNum: r.roundNum,
+      winner: r.winner,
+      reason: r.reason,
+      tScore: r.tScore,
+      ctScore: r.ctScore,
+    })),
+    kills: mock.kills.map((k, i) => ({
+      id: `k-${i}`,
+      tick: k.tick,
+      attackerSteamId: k.attacker_steamid,
+      victimSteamId: k.victim_steamid,
+      weapon: k.weapon,
+      headshot: k.headshot,
+      x: k.x,
+      y: k.y,
+      z: k.z,
+    })),
+    playerPositions: mock.playerPositions.map((p, i) => ({
+      id: `p-${i}`,
+      tick: p.tick,
+      steamId: p.steamid,
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      yaw: p.yaw,
+    })),
+    grenadeEvents: mock.grenades.map((g, i) => ({
+      id: `g-${i}`,
+      tick: g.tick,
+      type: g.type,
+      steamId: g.steamid,
+      trajectory: g.trajectory,
+    })),
+    damages: [],
+    playerStats: MOCK_PLAYERS.map((p, i) => {
+      const stats = mock.playerStats[p.steamId];
+      return {
+        id: `ps-${i}`,
+        steamId: p.steamId,
+        playerName: p.name,
+        team: p.team,
+        kills: stats.kills,
+        deaths: stats.deaths,
+        assists: stats.assists,
+        adr: stats.adr,
+        hsPct: stats.headshot_pct,
+        flashAssists: stats.flash_assists,
+        utilDamage: stats.util_damage,
+        rating: stats.rating,
+      };
+    }),
+  };
+}

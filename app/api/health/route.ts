@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, hasDatabase } from "@/lib/prisma";
 
 export async function GET() {
+  if (!hasDatabase()) {
+    return NextResponse.json({
+      ok: true,
+      service: "danalyze-api",
+      db: "demo",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma!.$queryRaw`SELECT 1`;
     return NextResponse.json({
       ok: true,
       service: "danalyze-api",

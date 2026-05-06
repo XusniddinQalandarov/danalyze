@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, hasDatabase } from "@/lib/prisma";
 import type { MatchListItemDTO, MatchViewerDTO } from "@/lib/contracts/match";
+import { getMockMatchById, getMockMatches } from "@/lib/mockData";
 
 interface MatchFilters {
   steamId?: string;
@@ -10,7 +11,11 @@ interface MatchFilters {
 }
 
 export async function getMatchViewerById(id: string): Promise<MatchViewerDTO | null> {
-  const match = await prisma.match.findUnique({
+  if (!hasDatabase()) {
+    return getMockMatchById(id);
+  }
+
+  const match = await prisma!.match.findUnique({
     where: { id },
     include: {
       rounds: { orderBy: { roundNum: "asc" } },
@@ -56,6 +61,10 @@ export async function getMatchViewerById(id: string): Promise<MatchViewerDTO | n
 }
 
 export async function listMatches(filters: MatchFilters, take = 50): Promise<MatchListItemDTO[]> {
+  if (!hasDatabase()) {
+    return getMockMatches().slice(0, take);
+  }
+
   const where: Record<string, unknown> = { status: "done" };
   if (filters.steamId) where.steamId = filters.steamId;
   if (filters.mapName) where.mapName = filters.mapName;
@@ -66,7 +75,7 @@ export async function listMatches(filters: MatchFilters, take = 50): Promise<Mat
     };
   }
 
-  const matches = await prisma.match.findMany({
+  const matches = await prisma!.match.findMany({
     where,
     include: { playerStats: true, rounds: true },
     orderBy: { date: "desc" },

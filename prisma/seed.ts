@@ -4,7 +4,7 @@
  * Or:  npm run seed
  */
 
-import { prisma } from "../lib/prisma";
+import { prisma, hasDatabase } from "../lib/prisma";
 import {
   generateMockRounds,
   generateMockKills,
@@ -15,12 +15,17 @@ import {
 } from "../lib/mockData";
 
 async function main() {
+  if (!hasDatabase()) {
+    console.log("No database available. This script requires a DATABASE_URL.");
+    process.exit(0);
+  }
+
   console.log("🌱 Seeding mock match data…");
 
   // Clean up old mock data
-  await prisma.match.deleteMany({ where: { id: { startsWith: "mock-" } } });
+  await prisma!.match.deleteMany({ where: { id: { startsWith: "mock-" } } });
 
-  const match = await prisma.match.create({
+  const match = await prisma!.match.create({
     data: {
       id: "mock-dust2-001",
       mapName: "de_dust2",
@@ -32,7 +37,7 @@ async function main() {
   });
 
   const rounds = generateMockRounds();
-  await prisma.round.createMany({
+  await prisma!.round.createMany({
     data: rounds.map((r) => ({
       matchId: match.id,
       roundNum: r.roundNum,
@@ -46,7 +51,7 @@ async function main() {
   const kills = generateMockKills();
   const CHUNK = 500;
   for (let i = 0; i < kills.length; i += CHUNK) {
-    await prisma.kill.createMany({
+    await prisma!.kill.createMany({
       data: kills.slice(i, i + CHUNK).map((k) => ({
         matchId: match.id,
         tick: k.tick,
@@ -63,7 +68,7 @@ async function main() {
 
   const positions = generateMockPositions();
   for (let i = 0; i < positions.length; i += CHUNK) {
-    await prisma.playerPosition.createMany({
+    await prisma!.playerPosition.createMany({
       data: positions.slice(i, i + CHUNK).map((p) => ({
         matchId: match.id,
         tick: p.tick,
@@ -78,7 +83,7 @@ async function main() {
 
   const grenades = generateMockGrenades();
   if (grenades.length) {
-    await prisma.grenadeEvent.createMany({
+    await prisma!.grenadeEvent.createMany({
       data: grenades.map((g) => ({
         matchId: match.id,
         tick: g.tick,
@@ -92,7 +97,7 @@ async function main() {
   const stats = generateMockPlayerStats();
   for (const [steamId, s] of Object.entries(stats)) {
     const player = MOCK_PLAYERS.find((p) => p.steamId === steamId);
-    await prisma.playerMatchStat.create({
+    await prisma!.playerMatchStat.create({
       data: {
         id: `${match.id}-${steamId}`,
         matchId: match.id,
@@ -121,4 +126,4 @@ async function main() {
 
 main()
   .catch((e) => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+  .finally(() => prisma?.$disconnect());

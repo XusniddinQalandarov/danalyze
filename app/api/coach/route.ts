@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { prisma } from "@/lib/prisma";
+import { prisma, hasDatabase } from "@/lib/prisma";
+import { getMockMatchById } from "@/lib/mockData";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -13,18 +14,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "matchId required" }, { status: 400 });
   }
 
-  const match = await prisma.match.findUnique({
-    where: { id: matchId },
-    include: {
-      rounds: { orderBy: { roundNum: "asc" } },
-      kills: { orderBy: { tick: "asc" } },
-      playerStats: true,
-      damages: true,
-    },
-  });
+  let match;
+  if (!hasDatabase()) {
+    const mockMatch = getMockMatchById(matchId);
+    if (!mockMatch) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+    match = {
+      ...mockMatch,
+      playerStats: mockMatch.playerStats as never,
+      kills: mockMatch.kills as never,
+      rounds: mockMatch.rounds as never,
+      damages: [],
+    };
+  } else {
+    match = await prisma!.match.findUnique({
+      where: { id: matchId },
+      include: {
+        rounds: { orderBy: { roundNum: "asc" } },
+        kills: { orderBy: { tick: "asc" } },
+        playerStats: true,
+        damages: true,
+      },
+    });
 
-  if (!match) {
-    return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    if (!match) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
   }
 
   // Build stats summary for the target player

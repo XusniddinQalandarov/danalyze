@@ -1,4 +1,4 @@
-import { prisma } from "./lib/prisma";
+import { prisma, hasDatabase } from "./lib/prisma";
 import {
   generateMockRounds,
   generateMockKills,
@@ -9,20 +9,25 @@ import {
 } from "./lib/mockData";
 
 async function main() {
-  const matches = await prisma.match.findMany();
+  if (!hasDatabase()) {
+    console.log("No database available. This script requires a DATABASE_URL.");
+    process.exit(0);
+  }
+
+  const matches = await prisma!.match.findMany();
   for (const match of matches) {
     console.log(`Updating match ${match.id}...`);
 
     // Delete existing records
-    await prisma.round.deleteMany({ where: { matchId: match.id } });
-    await prisma.kill.deleteMany({ where: { matchId: match.id } });
-    await prisma.playerPosition.deleteMany({ where: { matchId: match.id } });
-    await prisma.grenadeEvent.deleteMany({ where: { matchId: match.id } });
-    await prisma.playerMatchStat.deleteMany({ where: { matchId: match.id } });
+    await prisma!.round.deleteMany({ where: { matchId: match.id } });
+    await prisma!.kill.deleteMany({ where: { matchId: match.id } });
+    await prisma!.playerPosition.deleteMany({ where: { matchId: match.id } });
+    await prisma!.grenadeEvent.deleteMany({ where: { matchId: match.id } });
+    await prisma!.playerMatchStat.deleteMany({ where: { matchId: match.id } });
 
     // Generate new mock data
     const rounds = generateMockRounds();
-    await prisma.round.createMany({
+    await prisma!.round.createMany({
       data: rounds.map((r) => ({
         matchId: match.id,
         roundNum: r.roundNum,
@@ -36,7 +41,7 @@ async function main() {
     const kills = generateMockKills();
     const CHUNK = 500;
     for (let i = 0; i < kills.length; i += CHUNK) {
-      await prisma.kill.createMany({
+      await prisma!.kill.createMany({
         data: kills.slice(i, i + CHUNK).map((k) => ({
           matchId: match.id,
           tick: k.tick,
@@ -53,7 +58,7 @@ async function main() {
 
     const positions = generateMockPositions();
     for (let i = 0; i < positions.length; i += CHUNK) {
-      await prisma.playerPosition.createMany({
+      await prisma!.playerPosition.createMany({
         data: positions.slice(i, i + CHUNK).map((p) => ({
           matchId: match.id,
           tick: p.tick,
@@ -67,7 +72,7 @@ async function main() {
 
     const grenades = generateMockGrenades();
     if (grenades.length) {
-      await prisma.grenadeEvent.createMany({
+      await prisma!.grenadeEvent.createMany({
         data: grenades.map((g) => ({
           matchId: match.id,
           tick: g.tick,
@@ -81,7 +86,7 @@ async function main() {
     const stats = generateMockPlayerStats();
     for (const [steamId, s] of Object.entries(stats)) {
       const player = MOCK_PLAYERS.find((p) => p.steamId === steamId);
-      await prisma.playerMatchStat.create({
+      await prisma!.playerMatchStat.create({
         data: {
           id: `${match.id}-${steamId}`,
           matchId: match.id,
@@ -102,7 +107,7 @@ async function main() {
     
     // Fix match score
     const lastRound = rounds[rounds.length - 1];
-    await prisma.match.update({
+    await prisma!.match.update({
       where: { id: match.id },
       data: {
         scoreT: lastRound.tScore,
@@ -112,4 +117,4 @@ async function main() {
   }
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main().catch(console.error).finally(() => prisma?.$disconnect());
