@@ -1,0 +1,5 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+demoparser2==0.8.3
+python-multipart==0.0.18
+polars==1.14.0

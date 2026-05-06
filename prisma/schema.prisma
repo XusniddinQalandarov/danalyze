@@ -1,0 +1,105 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Match {
+  id          String   @id @default(cuid())
+  steamId     String?
+  mapName     String
+  date        DateTime @default(now())
+  filePath    String?
+  status      String   @default("pending")
+  scoreT      Int      @default(0)
+  scoreCt     Int      @default(0)
+  duration    Int      @default(0)
+  parsedAt    DateTime?
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+
+  kills           Kill[]
+  playerPositions PlayerPosition[]
+  grenadeEvents   GrenadeEvent[]
+  playerStats     PlayerMatchStat[]
+  rounds          Round[]
+  damages         Damage[]
+}
+
+model Round {
+  id       String @id @default(cuid())
+  matchId  String
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  roundNum Int
+  winner   String
+  reason   String
+  tScore   Int
+  ctScore  Int
+}
+
+model Kill {
+  id               String  @id @default(cuid())
+  matchId          String
+  match            Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tick             Int
+  attackerSteamId  String
+  victimSteamId    String
+  weapon           String
+  headshot         Boolean @default(false)
+  x                Float
+  y                Float
+  z                Float   @default(0)
+}
+
+model PlayerPosition {
+  id       String @id @default(cuid())
+  matchId  String
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tick     Int
+  steamId  String
+  x        Float
+  y        Float
+  z        Float  @default(0)
+  yaw      Float
+}
+
+model GrenadeEvent {
+  id             String @id @default(cuid())
+  matchId        String
+  match          Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tick           Int
+  type           String
+  steamId        String
+  trajectoryJson String
+}
+
+model Damage {
+  id               String @id @default(cuid())
+  matchId          String
+  match            Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tick             Int
+  attackerSteamId  String
+  victimSteamId    String
+  damage           Float
+  hitgroup         String
+}
+
+model PlayerMatchStat {
+  id           String @id @default(cuid())
+  matchId      String
+  match        Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  steamId      String
+  playerName   String @default("")
+  team         String @default("")
+  kills        Int    @default(0)
+  deaths       Int    @default(0)
+  assists      Int    @default(0)
+  adr          Float  @default(0)
+  hsPct        Float  @default(0)
+  flashAssists Int    @default(0)
+  utilDamage   Float  @default(0)
+  rating       Float  @default(0)
+}

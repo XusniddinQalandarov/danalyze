@@ -1,26 +1,42 @@
 {
-  "name": "frag.gg",
+  "name": "danalyze",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "npx ts-node --project tsconfig.json -e \"require('./prisma/seed.ts')\"",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@auth/prisma-adapter": "^2.11.2",
+    "@libsql/client": "^0.17.3",
+    "@prisma/adapter-libsql": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "anthropic": "^0.0.0",
+    "dotenv": "^17.4.2",
+    "formidable": "^3.5.4",
+    "lucide-react": "^1.14.0",
+    "multer": "^2.1.1",
+    "next": "14.2.35",
+    "next-auth": "^4.24.14",
+    "prisma": "^7.8.0",
     "react": "^18",
-    "react-dom": "^18",
-    "next": "14.2.35"
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35"
+    "typescript": "^5"
   }
 }

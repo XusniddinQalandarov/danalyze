@@ -3,25 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0a0a0f;
+  --accent: #ff6b2b;
+  --surface: #12121a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: #e2e8f0;
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+  min-height: 100vh;
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #ff6b2b; }
+
+/* Range input accent */
+input[type="range"] { cursor: pointer; }
+
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+  .font-tac { font-family: ui-monospace, monospace; letter-spacing: 0.05em; }
 }
